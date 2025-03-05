@@ -33,13 +33,6 @@ void	ft_putpid(pid_t n)
 		write(1, &"0123456789"[n % 10], 1);
 }
 
-void	ft_putchar_fd(char c, int fd)
-{
-	if (fd < 0)
-		return ;
-	write(fd, &c, 1);
-}
-
 void	ft_putstr_fd(char *s, int fd)
 {
 	unsigned long	i;
@@ -53,7 +46,7 @@ void	ft_putstr_fd(char *s, int fd)
 	{
 		while (s[i] != '\0')
 		{
-			ft_putchar_fd(s[i], fd);
+			write(fd, &s[i], 1);
 			i++;
 		}
 	}

@@ -6,32 +6,50 @@
 /*   By: ssukhija <ssukhija@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/29 21:14:19 by ssukhija          #+#    #+#             */
-/*   Updated: 2025/03/04 17:23:59 by ssukhija         ###   ########.fr       */
+/*   Updated: 2025/03/05 21:16:44 by ssukhija         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minitalk.h"
 
-char	*msg;
+char	*g_msg;
 
 void	sigint_handler(int sig)
 {
 	(void)sig;
 	write(1, "\n- INTERRUPTED - Server shutting down...\n", 41);
-	if (msg)
-		free(msg);
-	msg = NULL;
+	if (g_msg)
+		free(g_msg);
+	g_msg = NULL;
 	exit(EXIT_SUCCESS);
+}
+
+void	printmsg(pid_t c_pid)
+{
+	ft_putstr_fd(g_msg, 1);
+	free(g_msg);
+	g_msg = NULL;
+	write(1, "\n", 1);
+	kill(c_pid, SIGUSR2);
+}
+
+void	emptymsg(void)
+{
+	g_msg = malloc(sizeof(char) * 1);
+	if (g_msg == NULL)
+		return ;
+	g_msg[0] = '\0';
 }
 
 void	response(int sig, siginfo_t *info, void *context)
 {
-	(void)context;
-	pid_t	c_pid = info->si_pid;
 	static int	bitnum = 0;
 	static int	i;
-	char	c[2];
-	
+	char		c[2];
+	pid_t		c_pid;
+
+	(void) context;
+	c_pid = info->si_pid;
 	if (sig == SIGUSR1)
 		i |= (0x01 << bitnum);
 	bitnum++;
@@ -39,22 +57,11 @@ void	response(int sig, siginfo_t *info, void *context)
 	{
 		c[0] = (char)i;
 		c[1] = '\0';
-		if (msg == NULL)
-		{	
-			msg = malloc(sizeof(char) * 1);
-			if (msg == NULL)
-				return ;
-			msg[0] = '\0';
-		}
-		msg = ft_strjoin(msg, c);
+		if (g_msg == NULL)
+			emptymsg();
+		g_msg = ft_strjoin(g_msg, c);
 		if (c[0] == '\0')
-		{
-			ft_putstr_fd(msg, 1);
-			free(msg);
-			msg = NULL;
-			write(1,"\n", 1);
-			kill(c_pid, SIGUSR2);
-		}
+			printmsg(c_pid);
 		bitnum = 0;
 		i = 0;
 	}
@@ -64,14 +71,14 @@ void	response(int sig, siginfo_t *info, void *context)
 
 int	main(void)
 {
-	pid_t	pid;
-	struct	sigaction sa;
-	struct	sigaction sa_int;
+	struct sigaction	sa;
+	struct sigaction	sa_int;
+	pid_t				pid;
 
 	pid = getpid();
 	write(1, "SERVER PID : ", 12);
 	ft_putpid(pid);
-	write(1, "\n", 1);	
+	write(1, "\n", 1);
 	sa.sa_sigaction = response;
 	sa.sa_flags = SA_SIGINFO;
 	sigemptyset(&sa.sa_mask);
